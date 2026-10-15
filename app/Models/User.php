@@ -53,9 +53,36 @@ class User extends Model
         return User::find($userId);
     }
 
-    public function updateUser(int $userId): void
+    public function updateUser(int $userId, ?string $userName = null, ?string $email = null, ?string $phoneNum = null): bool
     {
-        // I'll leave it like this for now.
+        $user = $this->getUserById($userId);
+        if (!$user) {
+            return false;
+        }
+
+        if ($userName) {
+            if (User::where('user_name', $userName)->where('user_id', '!=', $userId)->exists()) {
+                return false;
+            }
+            $user->user_name = $userName;
+        }
+
+        if ($phoneNum) {
+            if (User::where('phone_num', $phoneNum)->where('user_id', '!=', $userId)->exists()) {
+                return false;
+            }
+            $user->phone_num = $phoneNum;
+        }
+
+        if ($email) {
+            if (User::where('email', $email)->where('user_id', '!=', $userId)->exists()) {
+                return false;
+            }
+            $user->email = $email;
+        }
+
+        $user->save();
+        return true;
     }
 
     public function deleteUser(int $userId): bool
