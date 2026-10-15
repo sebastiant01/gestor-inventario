@@ -6,6 +6,20 @@ use Illuminate\Database\Eloquent\Model;
 
 class User extends Model
 {
+    protected $primaryKey = 'user_id';
+
+    protected $fillable = [
+        'user_name',
+        'email',
+        'phone_num',
+        'password_hash',
+    ];
+
+    protected $hidden = [
+        'password_hash',
+        'remember_token',
+    ];
+
     public function createUser(string $userName, string $email, string $phoneNum, string $passwordHash): bool | string
     {
         if (User::where('user_name', $userName)->exists()) {
@@ -19,32 +33,24 @@ class User extends Model
         if (User::where('email', $email)->exists()) {
             return "This email already exists.";
         }
+
         User::create([
             'user_name' => $userName,
             'email' => $email,
             'phone_num' => $phoneNum,
             'password_hash' => $passwordHash,
         ]);
-
         return true;
     }
 
-    public function getUserByName(string $userName): Model | null
+    public function getUserByName(string $userName): ?User
     {
-        $user = User::where('user_name', $userName)->first();
-        if (!$user) {
-            return null;
-        }
-        return $user;
+        return User::where('user_name', $userName)->first();
     }
 
-    public function getUserById(int $userId): Model | null
+    public function getUserById(int $userId): ?User
     {
-        $user = User::where('user_id', $userId)->first();
-        if (!$user) {
-            return null;
-        }
-        return $user;
+        return User::find($userId);
     }
 
     public function updateUser(int $userId): void
