@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 
-class User extends Model
+class User extends Authenticatable
 {
+    use HasFactory;
+
     protected $primaryKey = 'user_id';
 
     protected $fillable = [
@@ -19,6 +22,17 @@ class User extends Model
         'password_hash',
         'remember_token',
     ];
+
+    /** The database stores password hashes in password_hash rather than password. */
+    public function getAuthPasswordName(): string
+    {
+        return 'password_hash';
+    }
+
+    public function getAuthPassword(): string
+    {
+        return (string) $this->password_hash;
+    }
 
     public function createUser(string $userName, string $email, string $phoneNum, string $passwordHash): bool | string
     {

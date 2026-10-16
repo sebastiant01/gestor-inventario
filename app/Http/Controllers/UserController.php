@@ -2,68 +2,77 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\View\View;
 use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
-
-
-    /**
-     * Thing to display the specified user.
-     */
-    public function showUserById(string $userId): View
+    public function indexUsers(Request $request)
     {
-        $user = User::findOrFail($userId);
-        return view('users.show', ['user' => $user]);
+        $query = User::query();
+        if ($search = trim((string) $request->query('search'))) {
+            $query->where(function ($q) use ($search) {
+                $q->where('user_name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('phone_num', 'like', "%{$search}%");
+            });
+        }
+        $users = $query->orderByDesc('created_at')->paginate(10)->withQueryString();
+        return view('users.index', compact('users'));
     }
 
-    /**
-     * Thing to display a listing of the users.
-     */
-    public function indexUsers(): View
+    public function create()
     {
-        $users = User::all();
-        return view('users.index', ['users' => $users]);
+        return view('users.create');
     }
 
-    /**
-     * ¨Thing to show a specific user by their username.
-     */
-    public function showUserByName(string $userName): View
+    public function store(Request $request)
     {
-        $user = User::where('user_name', $userName)->firstOrFail();
-        return view('users.show', ['user' => $user]);
-    }
-
-
-    /**
-     * Thing for updating the specified user in storage.
-     */
-    public function updateUser(Request $request, string $userId): view
-    {
-        $user = User::findOrFail($userId);
-
-        $validatedData = $request->validate([
-            'user_name' => 'nullable|string|max:255',
-            'email' => 'nullable|email|max:255',
-            'phone_num' => 'nullable|string|max:20',
+        $data = $request->validate([
+            'user_name' => ['required', 'string', 'max:255', 'unique:users,user_name'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'phone_num' => ['required', 'string', 'max:20', 'unique:users,phone_num'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
-
-        $user->update($validatedData);
-
-        return view('users.show', ['user' => $user])->with('success', 'Usuario actualizado exitosamente.');
+        User::create([
+            'user_name' => $data['user_name'], 'email' => $data['email'],
+            'phone_num' => $data['phone_num'], 'password_hash' => Hash::make($data['password']),
+        ]);
+        return redirect()->route('users.index')->with('success', 'El usuario fue creado correctamente.');
     }
 
-    /**
-     * Thing to remove the specified user from storage.
-     */
-    public function destroyUser(string $userId): View
+    public function edit(string $userId)
+    {
+        $user = User::findOrFail($userId);
+        return view('users.edit', compact('user'));
+    }
+
+    public function update(Request $request, string $userId)
+    {
+        $user = User::findOrFail($userId);
+        $data = $request->validate([
+            'user_name' => ['required', 'string', 'max:255', Rule::unique('users', 'user_name')->ignore($user->user_id, 'user_id')],
+            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->user_id, 'user_id')],
+            'phone_num' => ['required', 'string', 'max:20', Rule::unique('users', 'phone_num')->ignore($user->user_id, 'user_id')],
+            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
+        ]);
+        $user->user_name = $data['user_name'];
+        $user->email = $data['email'];
+        $user->phone_num = $data['phone_num'];
+        if (!empty($data['password'])) $user->password_hash = Hash::make($data['password']);
+        $user->save();
+        return redirect()->route('users.index')->with('success', 'Los datos del usuario fueron actualizados.');
+    }
+
+    public function destroy(string $userId)
     {
         $user = User::findOrFail($userId);
         $user->delete();
-
-        return view('users.index')->with('success', 'Usuario eliminado exitosamente.');
+        return redirect()->route('users.index')->with('success', 'El usuario fue eliminado.');
     }
+
+    public function showUserById(string $userId) { return redirect()->route('users.edit', $userId); }
+    public function showUserByName(string $userName) { $user = User::where('user_name', $userName)->firstOrFail(); return redirect()->route('users.edit', $user->user_id); }
 }
