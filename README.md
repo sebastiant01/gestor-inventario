@@ -56,3 +56,31 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+
+## Inicio de sesión y módulo de usuarios
+
+Esta versión incluye una pantalla de inicio de sesión con sesiones nativas de Laravel. Las rutas del CRUD de usuarios están protegidas con el middleware `auth`; sin una sesión válida, Laravel redirige al login. El login usa el nombre de usuario (`user_name`) y valida la contraseña contra el hash guardado en `password_hash`.
+
+### Preparar el entorno en Windows (PowerShell)
+
+1. Crea el archivo de entorno local desde la plantilla:
+
+   ```powershell
+   Copy-Item .env.example .env
+   ```
+
+2. Configura en `.env` la conexión a la base de datos que uses. Luego ejecuta:
+
+   ```powershell
+   composer install
+   php artisan key:generate
+   php artisan migrate
+   php artisan serve
+   ```
+
+3. Abre `http://127.0.0.1:8000/register` para crear la primera cuenta solo si la tabla `users` todavía está vacía. La cuenta se inicia automáticamente y se abre el panel. En adelante, el registro queda cerrado y debes entrar desde `http://127.0.0.1:8000/login`.
+
+4. Desde el panel puedes consultar, buscar, crear, editar y eliminar usuarios; el botón **Cerrar sesión** invalida la sesión actual.
+
+No se incluye una cuenta con contraseña predeterminada. El seeder está intencionalmente sin usuario predefinido para evitar exponer credenciales conocidas.
