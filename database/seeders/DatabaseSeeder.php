@@ -15,6 +15,10 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        $this->call([
+            RoleSeeder::class,
+        ]);
+        
         $this->command?->info('No se creó una cuenta por defecto. Cuando la aplicación esté iniciada, visita /register para crear la primera cuenta.');
     }
 }
