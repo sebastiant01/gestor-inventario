@@ -2,109 +2,124 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Category;
+use Exception;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\View\View;
 
 class CategoryController extends Controller
 {
     /**
-     * Funcion para mostrar todas las categorias que hay en la base de datos
+     * Display all categories from the database.
      */
-    public function indexCategories(): Collection {
+    public function indexCategories(): View {
         $categories = Category::all();
 
-        return view('categories.index', ['Categorias' => $categories]);
+        return view('categories.index', ['categories' => $categories]);
     }
 
     /**
      * Show the form for creating a new resource.
      */
-    public function createCategory(
-        string $categoryName,
-        string $description): Category {
-        try {
-            return Category::create([
-                'Nombre' => $categoryName,
-                'Descripcion' => $description,
-            ]);
+    public function createCategory(): View {
 
-        } catch (\Exception $es) {
-            // Manejar la excepción según sea necesario
-            return response()->json(['error' => $es->getMessage()], 400);
-        }
-
+        return view('categories.create');
     }
 
     /**
-     * Funcion para storear una nueva categoria en la base de datos
+     * Store a newly created category in the database.
      */
-    public function store(Request $request): Category {
-       try {
-            $request->validate([
-                'Nombre' => 'required|string|max:255',
-                'Descripcion' => 'nullable|string',
-            ]);
+    public function store(Request $request): Category | JsonResponse | RedirectResponse  {
+        Validator::make($request->all(),
+        [
+            'category_name' => 'required|string|unique:categories,category_name',
+            'category_description' => 'nullable|string',
+        ],
+        [
+            'category_name.required' => 'The category name is required.',
+            'category_name.unique' => 'The category name already exists.',
+        ])->validate();
 
-            $category = Category::create($request->all());
+       try {
+            Category::create($request->all());
 
         } catch (\Exception $es) {
             return response()->json(['error' => $es->getMessage()], 400);
         }
-        return redirect()->route('categories.index')->with('success', 'Categoría creada exitosamente.');
+        return redirect()->route('categories.index')->with('success', 'Category created successfully.');
     }
 
     /**
-     * Funcion para mostrar una categoria específica
+     * Display a specific category.
      */
     public function showCategory(string $idCategory): ?Category {
         return Category::find($idCategory);
     }
 
     /**
-     * Funcion para mostrar una categoria específica por nombre
+     * Display a specific category by name.
      */
     public function showCategoryByName(string $categoryName): ?Category {
-        return Category::where('NombreCategoria', $categoryName)->first();
+        return Category::where('category_name', $categoryName)->first();
     }
 
     /**
-     * Funcion para editar una categoria específica
+     * Show the form for editing a specific category.
      */
-    public function edit(string $idCategory): ?Category {
+    public function edit(string $idCategory): View | RedirectResponse {
         $editCategory = $this->showCategory($idCategory);
 
+        if (empty($editCategory)) {
+
+            Session::flash('message', [ 'content' => "Category with id '$idCategory' doesn't exist.", 'type' => 'error' ]);
+            return redirect()->back();
+        }
+
         return view('categories.edit', [
-            'Categoria' => $editCategory,
+            'category' => $editCategory,
         ]);
 
     }
 
     /**
-     * Funcion que actualiza una categoria específica
+     * Update a specific category in the database.
      */
-    public function update(Request $request, string $idCategory): ?Category {
+    public function update(Request $request, string $idCategory): Category | RedirectResponse {
+        Validator::make($request->all(),
+        [
+            'category_name' => 'required|string',
+            'category_description' => 'nullable|string',
+            'category_id' => 'required|exists:categories,category_id',
+        ],
+        [
+            'category_name.required' => 'The category name is required.',
+            'category_id.required' => 'The category is required.',
+            'category_id.exists' => 'The given id does not exist.',
+        ])->validate();
+
         try {
             $category = Category::find($idCategory);
 
-        if (!$category) {
-            throw new \RuntimeException('No se encontro la categoría.');
-        }
+            $category->category_name = $request->category_name;
+            $category->category_description = $request->category_description;
+            $category->save();
 
-        $category->NombreCategoria = $request->input('Nombre');
-        $category->Descripcion = $request->input('Descripcion');
+            return redirect()->route('categories.index')->with('success', 'Category updated successfully.');
 
-        $category->save();
+        } catch (Exception $er) {
+            Log::error('Error updating category: ' . $er->getMessage());
 
-        return redirect()->route('categories.index')->with('success', 'Categoría actualizada correctamente.');
-
-        } catch (exception $er) {
-            Log::error('Error al actualizar la categoría: ' . $er->getMessage());
-
-            return redirect()->back()->withErrors(['error' => 'Error al actualizar la categoría.']);
+            return redirect()->back()->withErrors(['error' => 'Error updating category.']);
         }
     }
 
     /**
-     * Funcion para eliminar una categoria específica
+     * Remove a specific category from the database.
      */
     public function destroy(string $id)
     {
@@ -112,17 +127,18 @@ class CategoryController extends Controller
             $category = Category::find($id);
 
             if (!$category) {
-                throw new \RuntimeException('Categoría no encontrada.');
+                Session::flash('message', ['content' => "Category with id '$id' doesn't exist.", 'type' => 'error']);
+                return redirect()->back();
             }
 
             $category->delete();
 
-            return redirect()->route('categories.index')->with('success', 'Categoría eliminada correctamente.');
+            return redirect()->route('categories.index')->with('success', 'Category successfully deleted.');
 
-        } catch (exception $er) {
-            Log::error('Error al eliminar la categoría: ' . $er->getMessage());
+        } catch (Exception $er) {
+            Log::error('Error deleting category: ' . $er->getMessage());
 
-            return redirect()->back()->withErrors(['error' => 'Error al eliminar la categoría.']);
+            return redirect()->back()->withErrors(['error' => 'Error deleting category.']);
         }
 }
 }
