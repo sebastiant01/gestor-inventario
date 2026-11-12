@@ -89,7 +89,7 @@ class CategoryController extends Controller
     /**
      * Update a specific category in the database.
      */
-    public function update(Request $request, string $idCategory): Category | RedirectResponse {
+    public function update(Request $request): Category | RedirectResponse {
         Validator::make($request->all(),
         [
             'category_name' => 'required|string',
@@ -103,7 +103,7 @@ class CategoryController extends Controller
         ])->validate();
 
         try {
-            $category = Category::find($idCategory);
+            $category = Category::find($request->category_id);
 
             $category->category_name = $request->category_name;
             $category->category_description = $request->category_description;
