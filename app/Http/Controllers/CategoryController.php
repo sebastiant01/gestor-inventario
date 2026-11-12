@@ -92,7 +92,7 @@ class CategoryController extends Controller
     public function update(Request $request): Category | RedirectResponse {
         Validator::make($request->all(),
         [
-            'category_name' => 'required|string',
+            'category_name' => 'required|string|unique:categories,category_name,' . $request->category_id . ',category_id',
             'category_description' => 'nullable|string',
             'category_id' => 'required|exists:categories,category_id',
         ],
