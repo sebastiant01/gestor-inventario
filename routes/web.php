@@ -3,6 +3,8 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ProductController;
+use App\Http\Controllers\CategoryController;
 
 Route::redirect('/', '/users');
 
@@ -28,4 +30,11 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/user/{userId}', [UserController::class, 'showUserById'])->name('user.show');
     Route::get('/user/name/{userName}', [UserController::class, 'showUserByName'])->name('user.showByName');
+
+    Route::get('/products', [ProductController::class, 'indexProducts'])->name('products.index');
+    Route::get('/products/create', [ProductController::class, 'createProduct'])->name('products.create');
+    Route::post('/products', [ProductController::class, 'store'])->name('products.store');
+    Route::get('/products/{productId}/edit', [ProductController::class, 'editProduct'])->name('products.edit');
+    Route::put('/products/{productId}', [ProductController::class, 'updateProduct'])->name('products.update');
+    Route::delete('/products/{productId}', [ProductController::class, 'destroyProduct'])->name('products.destroy');
 });

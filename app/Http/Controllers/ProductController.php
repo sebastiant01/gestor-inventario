@@ -11,45 +11,24 @@ class ProductController extends Controller
     /**
      * Muetsra todos los productos que haya en la base de datos y los devuelve a la vista
      */
-    public function indexProducts(): Collection {
-        $products = Product::all();
+    public function indexProducts(Request $request)
+    {
+        $products = Product::query()
+            ->when($request->query('search'), function ($query, $search) {
+                $query->where('product_name', 'like', "%{$search}%")
+                      ->orWhere('product_id', 'like', "%{$search}%");
+            })->orderByDesc('created_at')->paginate(10)->withQueryString();
 
-        return view('products.index', ['Productos' => $products]);
+        return view('products.index', compact('products'));
 
     }
 
     /**
      * funcion para crear productos y devolverlos a la vista con los datos de la vista y el modelo, se procede a crear un nuevo producto.
      */
-    public function createProduct(
-        string $productName,
-        float $productPrice,
-        int $productStock,
-        string $idCategory): Product {
+    public function createProduct() {
 
-        if (empty($productName) && trim($productName) === '') {
-            throw new \InvalidArgumentException('El nombre del producto no puede estar vacío.');
-        }
-        if ($productPrice <= 0) {
-            throw new \InvalidArgumentException('El precio debe ser mayor a cero.');
-        }
-        if ($productStock < 0) {
-            throw new \InvalidArgumentException('El stock no puede ser negativo.');
-        }
-
-        $category = Category::where('idCategory', $idCategory)->first();
-
-        //Es para corroborar que la categoria existe, si no existe lanza un error
-        if (!$category) {
-            throw new \RuntimeException('No se pudo crear o encontrar la categoría seleccionada.');
-        }
-
-        return Product::create([
-            'Nombre' => $productName,
-            'Precio' => $productPrice,
-            'Stock' => $productStock,
-            'Categoria' => $category->idCategory,
-        ]);
+        return view('products.create', ['editing' => false, 'product' => null]);
 
     }
 
@@ -58,48 +37,52 @@ class ProductController extends Controller
      */
     public function store(Request $request): Product
     {
-        $request->validate([
-            'Nombre' => 'required|string|max:255',
-            'Precio' => 'required|numeric|min:0',
-            'Stock' => 'required|integer|min:0',
-            'Categoria' => 'required|exists:categories,idCategory',
+        $data = $request->validate([
+            'product_name' => 'required|string|max:255',
+            'product_price' => 'required|numeric|min:0',
+            'product_description' => 'nullable|string|max:200',
+            'available_units' => 'required|integer|min:0',
+            'category_id' => 'required|exists:categories,category_id',
+            'is_available' => 'required|boolean',
+            'supplier_id' => 'required|exists:suppliers,supplier_id',
         ]);
 
-        return Product::create($request->all());
+        $data['user_id'] = auth()->id(); // Asignar el ID del q inicio sesion
+
+        return Product::create($data);
     }
 
     /**
      * Funcion para mostrar un producto específico por id
      */
     public function showProduct(string $idProducto): ?Product{
-        return Product::find($idProducto)->first();
+        return Product::findorfail($idProducto)->first();
     }
 
     /**
      * Funcion para editar un producto específico por id
      */
-    public function edit(string $idProduct): ?Product {
-        $editproduct = $this->showProduct($idProduct);
+    public function editProduct(string $idProduct){
+        $editproduct = Product::findorFail($idProduct);
 
 
-        return view('products.edit', ['producto' => $editproduct]);
+        return view('products.edit', compact('product'));
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $idProduct): ?Product {
-        try {
-            $product = Product::find($idProduct);
+    public function updateProduct(Request $request, string $idProduct){
+    try {
+        $product = Product::findorFail($idProduct);
 
-        if (!$product) {
-            throw new \RuntimeException('Producto no encontrado.');
-        }
-
-        $product->NombreProducto = $request->input('Nombre');
-        $product->Precio = $request->input('Precio');
-        $product->Stock = $request->input('Stock');
-        $product->Categoria = $request->input('Categoria');
+        $product->product_name = $request->input('product_name');
+        $product->product_price = $request->input('product_price');
+        $product->product_description = $request->input('product_description');
+        $product->available_units = $request->input('available_units');
+        $product->category_id = $request->input('category_id');
+        $product->is_available = $request->input('is_available');
+        $product->supplier_id = $request->input('supplier_id');
 
         $product->save();
         return redirect()->route('products.index')->with('success', 'Producto actualizado correctamente.');
@@ -115,13 +98,10 @@ class ProductController extends Controller
     /**
      * Funcion para eliminar un producto específico por id
      */
-    public function destroy(string $idProduct): ?Product
+    public function destroyProduct(string $idProduct): ?Product
     {
-        $product = Product::find($idProduct);
+        $product = Product::findorfail($idProduct);
 
-        if (!$product) {
-            throw new \RuntimeException('Producto no encontrado.');
-        }
 
         $product->delete();
 
@@ -144,10 +124,6 @@ class ProductController extends Controller
     public function UpdateStock(string $idProduct, int $newStock): ?Product
     {
         $product = Product::find($idProduct);
-
-        if (!$product) {
-            throw new \RuntimeException('Producto no encontrado.');
-        }
 
         $product->Stock = $newStock;
         $product->save();
