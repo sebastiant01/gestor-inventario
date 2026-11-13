@@ -24,6 +24,7 @@ class Inventory extends Model
             'product_id',
             'inventory_id',
             'product_id'
-        )->withPivot('product_quantity');
+        )->using(ProductsInventory::class)
+        ->withPivot('product_quantity');
     }
 }
