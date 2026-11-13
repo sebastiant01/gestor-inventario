@@ -27,14 +27,15 @@
 <aside id="sidebar" class="sidebar"><ul class="sidebar-nav" id="sidebar-nav">
 <li class="nav-heading">MENÚ PRINCIPAL</li><li class="nav-item"><a class="nav-link {{ request()->routeIs('users.*') ? '' : 'collapsed' }}" href="{{ route('users.index') }}"><i class="bi bi-people"></i><span>Usuarios</span></a></li>
 <li class="nav-heading">GESTIÓN</li><li class="nav-item"><a class="nav-link collapsed" href="{{ route('users.create') }}"><i class="bi bi-person-plus"></i><span>Nuevo usuario</span></a></li>
-<li class="nav-item mt-auto"><div class="sidebar-note"><i class="bi bi-info-circle"></i><span>Versión 1.0<br><small>CRUD de usuarios</small></span></div></li>
+<li class="nav-item"><a class="nav-link {{ request()->routeIs('products.*') ? '' : 'collapsed' }}" href="{{ route('products.index') }}"><i class="bi bi-box-seam"></i><span>Productos</span></a></li><li class="nav-item"><div a class="nav-item"><a class="nav-link collapsed" href="{{ route('products.create')}}"><i class="bi bi-cart-plus"></i><span>Nuevo producto</span></a></div></li>
 </ul></aside>
+<li class="nav-item mt-auto"><>
 <main id="main" class="main">
 <div class="pagetitle"><h1>@yield('page-title', 'Usuarios')</h1><nav><ol class="breadcrumb"><li class="breadcrumb-item"><a href="{{ route('users.index') }}">Inicio</a></li><li class="breadcrumb-item active">@yield('breadcrumb', 'Usuarios')</li></ol></nav></div>
 @if(session('success'))<div class="alert alert-success alert-dismissible fade show" role="alert"><i class="bi bi-check-circle me-2"></i>{{ session('success') }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>@endif
 @if($errors->any())<div class="alert alert-danger"><strong>Revisa los campos:</strong><ul class="mb-0 mt-1">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
 @yield('content')
-<footer class="footer"><div>© {{ date('Y') }} <strong>Inventario</strong> · Administración de usuarios</div><div class="text-muted">Panel interno</div></footer>
+<footer class="footer"><div>© {{ date('Y') }} <strong>Inventario</strong> · Administración de usuarios · Administración de productos </div><div class="text-muted">Panel interno</div></footer>
 </main>
 <script src="{{ asset('assets/vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script><script src="{{ asset('js/admin.js') }}"></script>@stack('scripts')
 </body></html>

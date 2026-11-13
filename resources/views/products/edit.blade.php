@@ -1,0 +1,16 @@
+@php($editing = true)
+@extends('layouts.app')
+@section('title', $editing ? 'Editar producto' : 'Nuevo producto')
+@section('page-title', $editing ? 'Editar producto' : 'Nuevo producto')
+@section('breadcrumb', $editing ? 'Editar producto' : 'Crear producto')
+@section('content')
+<div class="card content-card form-card"><div class="card-body"><div class="section-heading"><div><h5 class="card-title">{{ $editing ? 'Actualizar información' : 'Información del producto' }}</h5><p class="text-muted mb-0">{{ $editing ? 'Modifica los datos del producto seleccionado.' : 'Completa los campos para registrar un nuevo producto.' }}</p></div><div class="form-user-icon"><i class="bi bi-person-vcard"></i></div></div>
+<form method="POST" action="{{ $editing ? route('products.update', $product->product_id) : route('products.store') }}" novalidate>@csrf @if($editing) @method('PUT') @endif
+<div class="row g-4"><div class="col-12"><label class="form-label" for="product_name">Nombre del producto <span class="required">*</span></label><div class="input-with-icon"><i class="bi bi-box"></i><input class="form-control @error('product_name') is-invalid @enderror" id="product_name" name="product_name" value="{{ old('product_name', $editing ? $product->product_name : '') }}" placeholder="Ej. Canasta de pan" required maxlength="255"></div>@error('product_name')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror</div>
+<div class="col-12 col-md-6"><label class="form-label" for="product_price">Precio <span class="required">*</span></label><div class="input-with-icon"><i class="bi bi-currency-dollar"></i><input type="number" class="form-control @error('product_price') is-invalid @enderror" id="product_price" name="product_price" value="{{ old('product_price', $editing ? $product->product_price : '') }}" placeholder="0.00" required step="0.01"></div>@error('product_price')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror</div>
+<div class="col-12 col-md-6"><label class="form-label" for="available_units">Stock <span class="required">*</span></label><div class="input-with-icon"><i class="bi bi-inventory"></i><input type="number" class="form-control @error('available_units') is-invalid @enderror" id="available_units" name="available_units" value="{{ old('available_units', $editing ? $product->available_units : '') }}" placeholder="0" required></div>@error('available_units')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror</div>
+<div class="col-12 col-md-6"><label class="form-label" for="is_available">Disponibilidad <span class="required">*</span></label><div class="input-with-icon"><i class="bi bi-lamp"></i><input type="checkbox" class="form-check-input @error('is_available') is-invalid @enderror" id="is_available" name="is_available" value="{{ old('is_available', $editing ? $product->is_available : '') }}" {{ $editing && $product->is_available ? 'checked' : '' }}></div>@error('is_available')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror</div>
+<div class=
+"form-actions"><a href="{{ route('products.index') }}" class="btn btn-light">Cancelar</a><button type="submit" class="btn btn-primary"><i class="bi bi-check2-circle me-2"></i>{{ $editing ? 'Guardar cambios' : 'Crear producto' }}</button></div>
+</form></div></div>
+@endsection

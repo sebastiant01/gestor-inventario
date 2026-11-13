@@ -65,7 +65,7 @@ class AuthController extends Controller
         // que ya existe una cuenta capaz de administrar usuarios.
         if (User::query()->exists()) {
             return redirect()->route('login')->withErrors([
-                'registration' => 'El registro inicial ya está cerrado. Inicia sesión con una cuenta existente.',
+               'registration' => 'El registro inicial ya está cerrado. Inicia sesión con una cuenta existente.',
             ]);
         }
 

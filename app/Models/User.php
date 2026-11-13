@@ -14,6 +14,11 @@ class User extends Authenticatable
 
     protected $primaryKey = 'user_id';
 
+    public function createUser(array $attributes): User
+    {
+        return self::create($attributes);
+    }
+
     public function products(): HasMany
     {
         return $this->hasMany(Product::class, 'user_id', 'user_id');
@@ -30,6 +35,7 @@ class User extends Authenticatable
     }
 
     protected $fillable = [
+        'role_id',
         'user_name',
         'email',
         'phone_num',

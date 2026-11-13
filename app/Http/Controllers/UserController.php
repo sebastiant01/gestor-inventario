@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -36,9 +37,19 @@ class UserController extends Controller
             'phone_num' => ['required', 'string', 'max:20', 'unique:users,phone_num'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
+        $userRoleId = Role::query()->where('role_name', 'user')->value('role_id');
+        if ($userRoleId === null) {
+            return back()
+                ->withErrors(['role' => 'No se encontró el rol de usuario.'])
+                ->withInput($request->except(['password', 'password_confirmation']));
+        }
+
         User::create([
-            'user_name' => $data['user_name'], 'email' => $data['email'],
-            'phone_num' => $data['phone_num'], 'password_hash' => Hash::make($data['password']),
+            'role_id' => $userRoleId,
+            'user_name' => $data['user_name'],
+            'email' => $data['email'],
+            'phone_num' => $data['phone_num'],
+            'password_hash' => Hash::make($data['password']),
         ]);
         return redirect()->route('users.index')->with('success', 'El usuario fue creado correctamente.');
     }
