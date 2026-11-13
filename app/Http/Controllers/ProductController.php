@@ -2,156 +2,175 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Category;
 use App\Models\Product;
+use App\Models\Supplier;
+use Exception;
 use Illuminate\Http\Request;
-use \Illuminate\Database\Eloquent\Collection;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\View\View;
 
 class ProductController extends Controller
 {
-    /**
-     * Muetsra todos los productos que haya en la base de datos y los devuelve a la vista
-     */
-    public function indexProducts(): Collection {
-        $products = Product::all();
-
-        return view('products.index', ['Productos' => $products]);
-
-    }
-
-    /**
-     * funcion para crear productos y devolverlos a la vista con los datos de la vista y el modelo, se procede a crear un nuevo producto.
-     */
-    public function createProduct(
-        string $productName,
-        float $productPrice,
-        int $productStock,
-        string $idCategory): Product {
-
-        if (empty($productName) && trim($productName) === '') {
-            throw new \InvalidArgumentException('El nombre del producto no puede estar vacío.');
-        }
-        if ($productPrice <= 0) {
-            throw new \InvalidArgumentException('El precio debe ser mayor a cero.');
-        }
-        if ($productStock < 0) {
-            throw new \InvalidArgumentException('El stock no puede ser negativo.');
-        }
-
-        $category = Category::where('idCategory', $idCategory)->first();
-
-        //Es para corroborar que la categoria existe, si no existe lanza un error
-        if (!$category) {
-            throw new \RuntimeException('No se pudo crear o encontrar la categoría seleccionada.');
-        }
-
-        return Product::create([
-            'Nombre' => $productName,
-            'Precio' => $productPrice,
-            'Stock' => $productStock,
-            'Categoria' => $category->idCategory,
-        ]);
-
-    }
-
-    /**
-     * Funcion para storear un nuevo producto en la base de datos
-     */
-    public function store(Request $request): Product
+    public function index(): View
     {
-        $request->validate([
-            'Nombre' => 'required|string|max:255',
-            'Precio' => 'required|numeric|min:0',
-            'Stock' => 'required|integer|min:0',
-            'Categoria' => 'required|exists:categories,idCategory',
+        $products = Product::with(['category', 'supplier'])->get();
+
+        return view('products.index', ['products' => $products]);
+    }
+
+    public function create(): View
+    {
+        $categories = Category::all();
+        $suppliers = Supplier::all();
+
+        return view('products.create', [
+            'categories' => $categories,
+            'suppliers' => $suppliers,
         ]);
-
-        return Product::create($request->all());
     }
 
-    /**
-     * Funcion para mostrar un producto específico por id
-     */
-    public function showProduct(string $idProducto): ?Product{
-        return Product::find($idProducto)->first();
-    }
+    public function store(Request $request): RedirectResponse
+    {
+        Validator::make($request->all(),
+        [
+            'product_name' => 'required|string|unique:products,product_name',
+            'product_price' => 'required|numeric|min:0',
+            'product_description' => 'nullable|string',
+            'available_units' => 'required|integer|min:0',
+            'category_id' => 'required|exists:categories,category_id',
+            'supplier_id' => 'required|exists:suppliers,supplier_id',
+        ],
+        [
+            'product_name.required' => 'The product name is required.',
+            'product_name.unique' => 'The product name already exists.',
+            'product_price.required' => 'The product price is required.',
+            'product_price.min' => 'The product price must be greater than zero.',
+            'available_units.required' => 'The available units are required.',
+            'available_units.min' => 'The available units cannot be negative.',
+            'category_id.required' => 'The category is required.',
+            'category_id.exists' => 'The selected category does not exist.',
+            'supplier_id.required' => 'The supplier is required.',
+            'supplier_id.exists' => 'The selected supplier does not exist.',
+        ])->validate();
 
-    /**
-     * Funcion para editar un producto específico por id
-     */
-    public function edit(string $idProduct): ?Product {
-        $editproduct = $this->showProduct($idProduct);
-
-
-        return view('products.edit', ['producto' => $editproduct]);
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $idProduct): ?Product {
         try {
-            $product = Product::find($idProduct);
+            $product = new Product();
+            $product->product_name = $request->product_name;
+            $product->product_price = $request->product_price;
+            $product->product_description = $request->product_description;
+            $product->available_units = $request->available_units;
+            $product->is_available = true;
+            $product->category_id = $request->category_id;
+            $product->supplier_id = $request->supplier_id;
+            $product->user_id = Auth::id();
+            $product->save();
 
-        if (!$product) {
-            throw new \RuntimeException('Producto no encontrado.');
+            return redirect()->route('products.index')->with('success', 'Product created successfully.');
+
+        } catch (Exception $ex) {
+            Log::error($ex);
+            return redirect()->back()->withErrors(['error' => 'An error has occurred.']);
         }
-
-        $product->NombreProducto = $request->input('Nombre');
-        $product->Precio = $request->input('Precio');
-        $product->Stock = $request->input('Stock');
-        $product->Categoria = $request->input('Categoria');
-
-        $product->save();
-        return redirect()->route('products.index')->with('success', 'Producto actualizado correctamente.');
-
-        } catch (exception $er) {
-            Log::error('Error al actualizar el producto: ' . $er->getMessage());
-
-        }
-
-
     }
 
-    /**
-     * Funcion para eliminar un producto específico por id
-     */
-    public function destroy(string $idProduct): ?Product
+    public function edit(string $id): View | RedirectResponse
     {
-        $product = Product::find($idProduct);
+        $product = Product::find($id);
 
-        if (!$product) {
-            throw new \RuntimeException('Producto no encontrado.');
+        if (empty($product)) {
+            return redirect()->back()->withErrors(['error' => "Product with id '$id' doesn't exist."]);
         }
 
-        $product->delete();
+        $categories = Category::all();
+        $suppliers = Supplier::all();
 
-        return redirect()->route('products.index')->with('success', 'Producto eliminado correctamente.');
+        return view('products.edit', [
+            'product' => $product,
+            'categories' => $categories,
+            'suppliers' => $suppliers,
+        ]);
     }
 
-    /**
-     * Funcion para obtener todos los productos de una categoria específica
-     */
-
-    public function getProductsByCategory(string $idCategory): Collection
+    public function update(Request $request): RedirectResponse
     {
-        return Product::where('Categoria', $idCategory)->get();
+        Validator::make($request->all(),
+        [
+            'product_id' => 'required|exists:products,product_id',
+            'product_name' => 'required|string|unique:products,product_name,' . $request->product_id . ',product_id',
+            'product_price' => 'required|numeric|min:0.01',
+            'product_description' => 'nullable|string',
+            'available_units' => 'required|integer|min:1',
+            'is_available' => 'boolean',
+            'category_id' => 'required|exists:categories,category_id',
+            'supplier_id' => 'required|exists:suppliers,supplier_id',
+        ],
+        [
+            'product_id.required' => 'The product is required.',
+            'product_id.exists' => 'The given id does not exist.',
+            'product_name.required' => 'The product name is required.',
+            'product_name.unique' => 'The product name already exists.',
+            'product_price.required' => 'The product price is required.',
+            'product_price.min' => 'The product price must be greater than zero.',
+            'available_units.required' => 'The available units are required.',
+            'available_units.min' => 'The available units cannot be negative.',
+            'category_id.required' => 'The category is required.',
+            'category_id.exists' => 'The selected category does not exist.',
+            'supplier_id.required' => 'The supplier is required.',
+            'supplier_id.exists' => 'The selected supplier does not exist.',
+        ])->validate();
+
+        try {
+            $product = Product::find($request->product_id);
+            $product->product_name = $request->product_name;
+            $product->product_price = $request->product_price;
+            $product->product_description = $request->product_description;
+            $product->available_units = $request->available_units;
+            $product->is_available = $request->boolean('is_available', true);
+            $product->category_id = $request->category_id;
+            $product->supplier_id = $request->supplier_id;
+            $product->save();
+
+            return redirect()->route('products.index')->with('success', 'Product updated successfully.');
+
+        } catch (Exception $ex) {
+            Log::error($ex);
+            return redirect()->back()->withErrors(['error' => 'An error has occurred.']);
+        }
     }
 
-    /**
-     * Funcion para actualizar el stock de un producto
-     */
-
-    public function UpdateStock(string $idProduct, int $newStock): ?Product
+    public function delete(string $id): RedirectResponse
     {
-        $product = Product::find($idProduct);
+        try {
+            $product = Product::find($id);
 
-        if (!$product) {
-            throw new \RuntimeException('Producto no encontrado.');
+            if (empty($product)) {
+                return redirect()->back()->withErrors(['error' => "Product with id '$id' doesn't exist."]);
+            }
+
+            $product->delete();
+
+            return redirect()->route('products.index')->with('success', 'Product deleted successfully.');
+
+        } catch (Exception $ex) {
+            Log::error($ex);
+            return redirect()->back()->withErrors(['error' => 'An error has occurred.']);
+        }
+    }
+
+    public function getByCategory(string $categoryId): View | RedirectResponse
+    {
+        $category = Category::find($categoryId);
+
+        if (empty($category)) {
+            return redirect()->back()->withErrors(['error' => "Category with id '$categoryId' doesn't exist."]);
         }
 
-        $product->Stock = $newStock;
-        $product->save();
+        $products = Product::where('category_id', $categoryId)->get();
 
-        return $product;
+        return view('products.index', ['products' => $products]);
     }
 }
