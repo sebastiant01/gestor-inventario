@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Role;
 use App\Models\User;
-use App\Services\Auth as AuthService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
 
 class AuthController extends Controller
@@ -37,32 +38,33 @@ class AuthController extends Controller
     public function login(Request $request): RedirectResponse
     {
         $credentials = $request->validate([
-            'user_name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255'],
             'password' => ['required', 'string'],
         ], [
-            'user_name.required' => 'Escribe tu nombre de usuario.',
+            'email.required' => 'Escribe tu correo electrónico.',
+            'email.email' => 'Escribe un correo electrónico válido.',
             'password.required' => 'Escribe tu contraseña.',
         ]);
 
-        if (!Auth::attempt([
-            'user_name' => $credentials['user_name'],
+        if (! Auth::attempt([
+            'email' => $credentials['email'],
             'password' => $credentials['password'],
         ], $request->boolean('remember'))) {
             return back()
-                ->withErrors(['user_name' => 'El usuario o la contraseña son incorrectos.'])
-                ->onlyInput('user_name');
+                ->withErrors(['email' => 'El correo electrónico o la contraseña son incorrectos.'])
+                ->onlyInput('email');
         }
 
+        // Cambiar el identificador de sesión evita reutilizar la sesión previa al login.
         $request->session()->regenerate();
 
         return redirect()->intended(route('users.index'))
             ->with('success', 'Has iniciado sesión correctamente.');
     }
 
-    public function register(Request $request, AuthService $auth): RedirectResponse
+    public function register(Request $request): RedirectResponse
     {
-        // Evita que usuarios nuevos se registren y obtengan acceso al panel una vez
-        // que ya existe una cuenta capaz de administrar usuarios.
+        // El registro público se cierra una vez creada la cuenta administrativa inicial.
         if (User::query()->exists()) {
             return redirect()->route('login')->withErrors([
                 'registration' => 'El registro inicial ya está cerrado. Inicia sesión con una cuenta existente.',
@@ -76,30 +78,30 @@ class AuthController extends Controller
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
-        $result = $auth->register(
-            $data['user_name'],
-            $data['email'],
-            $data['phone_num'],
-            $data['password']
+        // La primera cuenta recibe el rol administrativo para configurar el sistema.
+        $adminRole = Role::query()->firstOrCreate(
+            ['role_name' => 'admin'],
+            ['role_description' => 'Administrador del sistema']
         );
 
-        if ($result !== true) {
-            return back()
-                ->withErrors(['registration' => is_string($result) ? $result : 'No se pudo crear la cuenta inicial.'])
-                ->withInput($request->except(['password', 'password_confirmation']));
-        }
+        $user = new User();
+        $user->user_name = $data['user_name'];
+        $user->email = $data['email'];
+        $user->phone_num = $data['phone_num'];
+        $user->password_hash = Hash::make($data['password']);
+        $user->role_id = $adminRole->role_id;
+        $user->save();
 
-        $user = User::query()->where('user_name', $data['user_name'])->firstOrFail();
         Auth::login($user);
         $request->session()->regenerate();
 
         return redirect()->route('users.index')
-            ->with('success', 'Cuenta inicial creada. Ya puedes administrar los usuarios.');
+            ->with('success', 'Cuenta administrativa inicial creada correctamente.');
     }
 
     public function logout(Request $request): RedirectResponse
     {
-        Auth::logout();
+        Auth::guard('web')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
