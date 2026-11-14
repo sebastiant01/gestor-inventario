@@ -15,7 +15,7 @@ class AuthController extends Controller
     public function showLogin(): View|RedirectResponse
     {
         if (Auth::check()) {
-            return redirect()->intended(route('users.index'));
+            return redirect()->intended(route('products.index'));
         }
 
         return view('auth.login', [
@@ -58,7 +58,7 @@ class AuthController extends Controller
         // Cambiar el identificador de sesión evita reutilizar la sesión previa al login.
         $request->session()->regenerate();
 
-        return redirect()->intended(route('users.index'))
+        return redirect()->intended(route('products.index'))
             ->with('success', 'Has iniciado sesión correctamente.');
     }
 
@@ -95,7 +95,7 @@ class AuthController extends Controller
         Auth::login($user);
         $request->session()->regenerate();
 
-        return redirect()->route('users.index')
+        return redirect()->route('products.index')
             ->with('success', 'Cuenta administrativa inicial creada correctamente.');
     }
 

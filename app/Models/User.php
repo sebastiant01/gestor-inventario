@@ -34,12 +34,24 @@ class User extends Authenticatable
         'email',
         'phone_num',
         'password_hash',
+        'role_id',
     ];
 
     protected $hidden = [
         'password_hash',
         'remember_token',
     ];
+
+    /**
+     * Comprueba un permiso mediante la relación rol-permisos.
+     * Si el usuario no tiene rol asignado, el acceso se deniega.
+     */
+    public function hasPermission(string $permissionCode): bool
+    {
+        return $this->role()
+            ->whereHas('permissions', fn ($query) => $query->where('code', $permissionCode))
+            ->exists();
+    }
 
     /** The database stores password hashes in password_hash rather than password. */
     public function getAuthPasswordName(): string

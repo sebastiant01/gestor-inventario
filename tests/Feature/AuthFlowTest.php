@@ -13,7 +13,9 @@ class AuthFlowTest extends TestCase
 
     public function test_users_panel_redirects_guests_to_login(): void
     {
-        $this->get('/users')->assertRedirect(route('login'));
+        foreach (['/users', '/products', '/categories', '/suppliers', '/inventories'] as $path) {
+            $this->get($path)->assertRedirect(route('login'));
+        }
     }
 
     public function test_user_can_log_in_and_log_out(): void
@@ -25,7 +27,7 @@ class AuthFlowTest extends TestCase
         $this->post(route('login.attempt'), [
             'email' => $user->email,
             'password' => 'password-segura',
-        ])->assertRedirect(route('users.index'));
+        ])->assertRedirect(route('products.index'));
 
         $this->assertAuthenticatedAs($user);
 
