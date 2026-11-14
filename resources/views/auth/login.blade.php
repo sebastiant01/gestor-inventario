@@ -37,7 +37,7 @@
                 <div class="auth-heading-icon"><i class="bi bi-person-lock"></i></div>
                 <p class="auth-kicker">BIENVENIDO DE NUEVO</p>
                 <h2>Iniciar sesión</h2>
-                <p class="auth-subtitle">Introduce tu nombre de usuario y contraseña.</p>
+                <p class="auth-subtitle">Introduce tu correo electrónico y contraseña.</p>
 
                 @if (session('success'))
                     <div class="alert alert-success" role="status"><i class="bi bi-check-circle me-2"></i>{{ session('success') }}</div>
@@ -45,8 +45,8 @@
                 @if ($errors->has('registration'))
                     <div class="alert alert-warning" role="alert">{{ $errors->first('registration') }}</div>
                 @endif
-                @if ($errors->has('user_name'))
-                    <div class="alert alert-danger" role="alert">{{ $errors->first('user_name') }}</div>
+                @if ($errors->has('email'))
+                    <div class="alert alert-danger" role="alert">{{ $errors->first('email') }}</div>
                 @endif
                 @if ($errors->has('password'))
                     <div class="alert alert-danger" role="alert">{{ $errors->first('password') }}</div>
@@ -55,10 +55,10 @@
                 <form method="POST" action="{{ route('login.attempt') }}" class="auth-form">
                     @csrf
                     <div class="mb-3">
-                        <label class="form-label" for="user_name">Nombre de usuario</label>
+                        <label class="form-label" for="email">Correo electrónico</label>
                         <div class="auth-input-wrap">
-                            <i class="bi bi-person" aria-hidden="true"></i>
-                            <input id="user_name" name="user_name" type="text" class="form-control @error('user_name') is-invalid @enderror" value="{{ old('user_name') }}" placeholder="Nombre de usuario" autocomplete="username" maxlength="255" required autofocus>
+                            <i class="bi bi-envelope" aria-hidden="true"></i>
+                            <input id="email" name="email" type="email" class="form-control @error('email') is-invalid @enderror" value="{{ old('email') }}" placeholder="nombre@correo.com" autocomplete="email" maxlength="255" required autofocus>
                         </div>
                     </div>
                     <div class="mb-3">

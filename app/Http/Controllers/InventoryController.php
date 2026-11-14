@@ -17,9 +17,13 @@ class InventoryController extends Controller
 {
     public function index(): View
     {
-        $inventories = Inventory::with('products')->get();
+        $inventories = Inventory::with('products')->orderBy('inventory_name')->get();
+        $availableProducts = Product::query()->where('available_units', '>', 0)->orderBy('product_name')->get();
 
-        return view('inventories.index', ['inventories' => $inventories]);
+        return view('inventories.index', [
+            'inventories' => $inventories,
+            'availableProducts' => $availableProducts,
+        ]);
     }
 
     public function create(): View
@@ -149,6 +153,12 @@ class InventoryController extends Controller
             $inventory = Inventory::find($request->inventory_id);
             $product = Product::find($request->product_id);
 
+            if ($inventory->products()->wherePivot('product_id', $product->product_id)->exists()) {
+                return redirect()->back()->withErrors([
+                    'error' => 'Este producto ya está asociado al inventario. Actualiza su cantidad desde el listado.',
+                ]);
+            }
+
             if (($inventory->total_units + $request->product_quantity) > $inventory->capacity) {
                 return redirect()->back()->withErrors([
                     'error' => "Capacity exceeded. Available space: " . ($inventory->capacity - $inventory->total_units) . " units."
@@ -199,10 +209,17 @@ class InventoryController extends Controller
             $inventory = Inventory::find($request->inventory_id);
             $product = Product::find($request->product_id);
 
-            $removedQuantity = $inventory->products()
-                ->where('product_id', $request->product_id)
-                ->first()
-                ->pivot->product_quantity;
+            $assignedProduct = $inventory->products()
+                ->wherePivot('product_id', $request->product_id)
+                ->first();
+
+            if (! $assignedProduct) {
+                return redirect()->back()->withErrors([
+                    'error' => 'El producto no está asociado a este inventario.',
+                ]);
+            }
+
+            $removedQuantity = (int) $assignedProduct->pivot->product_quantity;
 
             DB::transaction(function () use ($inventory, $product, $request, $removedQuantity) {
                 $inventory->products()->detach($request->product_id);
@@ -243,12 +260,18 @@ class InventoryController extends Controller
             $inventory = Inventory::find($request->inventory_id);
             $product = Product::find($request->product_id);
 
-            $currentQuantity = $inventory->products()
-                ->where('product_id', $request->product_id)
-                ->first()
-                ->pivot->product_quantity;
+             $assignedProduct = $inventory->products()
+             ->wherePivot('product_id', $request->product_id)
+             ->first();
 
-            $difference = $request->product_quantity - $currentQuantity;
+            if (! $assignedProduct) {
+                return redirect()->back()->withErrors([
+                    'error' => 'El producto no está asociado a este inventario.',
+                ]);
+            }
+
+            $currentQuantity = (int) $assignedProduct->pivot->product_quantity;
+            $difference = (int) $request->product_quantity - $currentQuantity;
 
             if (($inventory->total_units + $difference) > $inventory->capacity) {
                 return redirect()->back()->withErrors([

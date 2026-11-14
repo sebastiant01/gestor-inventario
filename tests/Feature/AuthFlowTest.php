@@ -13,7 +13,9 @@ class AuthFlowTest extends TestCase
 
     public function test_users_panel_redirects_guests_to_login(): void
     {
-        $this->get('/users')->assertRedirect(route('login'));
+        foreach (['/users', '/products', '/categories', '/suppliers', '/inventories'] as $path) {
+            $this->get($path)->assertRedirect(route('login'));
+        }
     }
 
     public function test_user_can_log_in_and_log_out(): void
@@ -23,15 +25,15 @@ class AuthFlowTest extends TestCase
         ]);
 
         $this->post(route('login.attempt'), [
-            'user_name' => $user->user_name,
+            'email' => $user->email,
             'password' => 'password-segura',
-        ])->assertRedirect(route('users.index'));
+        ])->assertRedirect(route('products.index'));
 
         $this->assertAuthenticatedAs($user);
-        $this->get(route('users.index'))->assertOk();
 
         $this->post(route('logout'))->assertRedirect(route('login'));
         $this->assertGuest();
+        $this->get(route('users.index'))->assertRedirect(route('login'));
     }
 
     public function test_login_rejects_an_incorrect_password(): void
@@ -41,9 +43,9 @@ class AuthFlowTest extends TestCase
         ]);
 
         $this->from(route('login'))->post(route('login.attempt'), [
-            'user_name' => $user->user_name,
+            'email' => $user->email,
             'password' => 'incorrecta',
-        ])->assertRedirect(route('login'))->assertSessionHasErrors('user_name');
+        ])->assertRedirect(route('login'))->assertSessionHasErrors('email');
 
         $this->assertGuest();
     }
