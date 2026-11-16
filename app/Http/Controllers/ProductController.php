@@ -17,9 +17,14 @@ class ProductController extends Controller
 {
     public function index(): View
     {
-        $products = Product::with(['category', 'supplier'])->get();
+        $products = Product::with(['category', 'supplier'])->orderBy('product_name')->get();
+        $categories = Category::query()->orderBy('category_name')->get();
 
-        return view('products.index', ['products' => $products]);
+        return view('products.index', [
+            'products' => $products,
+            'categories' => $categories,
+            'selectedCategoryId' => null,
+        ]);
     }
 
     public function create(): View
@@ -63,7 +68,7 @@ class ProductController extends Controller
             $product->product_price = $request->product_price;
             $product->product_description = $request->product_description;
             $product->available_units = $request->available_units;
-            $product->is_available = true;
+            $product->is_available = (int) $request->available_units > 0;
             $product->category_id = $request->category_id;
             $product->supplier_id = $request->supplier_id;
             $product->user_id = Auth::id();
@@ -103,7 +108,7 @@ class ProductController extends Controller
             'product_name' => 'required|string|unique:products,product_name,' . $request->product_id . ',product_id',
             'product_price' => 'required|numeric|min:0.01',
             'product_description' => 'nullable|string',
-            'available_units' => 'required|integer|min:1',
+            'available_units' => 'required|integer|min:0',
             'is_available' => 'boolean',
             'category_id' => 'required|exists:categories,category_id',
             'supplier_id' => 'required|exists:suppliers,supplier_id',
@@ -169,8 +174,13 @@ class ProductController extends Controller
             return redirect()->back()->withErrors(['error' => "Category with id '$categoryId' doesn't exist."]);
         }
 
-        $products = Product::where('category_id', $categoryId)->get();
+        $products = Product::with(['category', 'supplier'])->where('category_id', $categoryId)->orderBy('product_name')->get();
+        $categories = Category::query()->orderBy('category_name')->get();
 
-        return view('products.index', ['products' => $products]);
+        return view('products.index', [
+            'products' => $products,
+            'categories' => $categories,
+            'selectedCategoryId' => $categoryId,
+        ]);
     }
 }

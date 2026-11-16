@@ -19,14 +19,10 @@ return new class extends Migration
             $table->string('password_hash');
             $table->rememberToken();
 
-            $table->unsignedBigInteger('role_id');
 
             $table->timestamps();
         });
 
-        Schema::table('users', function (Blueprint $table) {
-            $table->foreign('role_id')->references('role_id')->on('roles');  // ← constraint
-        });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
             $table->string('email')->primary();

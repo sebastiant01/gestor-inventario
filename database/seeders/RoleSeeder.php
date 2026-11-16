@@ -2,19 +2,21 @@
 
 namespace Database\Seeders;
 
+use App\Models\Role;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 
 class RoleSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        DB::table('roles')->insert([
+        Role::query()->updateOrCreate(
             ['role_name' => 'admin'],
+            ['role_description' => 'Administrador con acceso a todos los módulos.']
+        );
+
+        Role::query()->updateOrCreate(
             ['role_name' => 'user'],
-        ]);
+            ['role_description' => 'Usuario con permisos de consulta.']
+        );
     }
 }

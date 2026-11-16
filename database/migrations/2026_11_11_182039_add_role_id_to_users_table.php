@@ -6,22 +6,28 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->unsignedBigInteger('role_id')->after('user_id');
-            $table->foreign('role_id')->references('role_id')->on('roles');
-        });
+        // La tabla roles se crea antes de esta migración. La comprobación evita
+        // duplicar role_id en bases que ya tenían la columna.
+        if (! Schema::hasColumn('users', 'role_id')) {
+            Schema::table('users', function (Blueprint $table) {
+                $table->unsignedBigInteger('role_id')->nullable()->after('user_id');
+                $table->foreign('role_id')
+                    ->references('role_id')
+                    ->on('roles')
+                    ->nullOnDelete();
+            });
+        }
     }
 
     public function down(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->dropForeign(['role_id']);
-            $table->dropColumn('role_id');
-        });
+        if (Schema::hasColumn('users', 'role_id')) {
+            Schema::table('users', function (Blueprint $table) {
+                $table->dropForeign(['role_id']);
+                $table->dropColumn('role_id');
+            });
+        }
     }
 };
