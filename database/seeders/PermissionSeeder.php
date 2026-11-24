@@ -11,6 +11,13 @@ class PermissionSeeder extends Seeder
     public function run(): void
     {
         $permissions = [
+            // Roles.
+            ['code' => 'roles.show', 'description' => 'Consultar roles', 'module' => 'Roles'],
+            ['code' => 'roles.create', 'description' => 'Crear roles', 'module' => 'Roles'],
+            ['code' => 'roles.update', 'description' => 'Editar roles', 'module' => 'Roles'],
+            ['code' => 'roles.delete', 'description' => 'Eliminar roles', 'module' => 'Roles'],
+            ['code' => 'roles.assign-role', 'description' => 'Asignar roles a roles', 'module' => 'Roles'],
+
             // Gestión de usuarios.
             ['code' => 'users.show', 'description' => 'Consultar usuarios', 'module' => 'Usuarios'],
             ['code' => 'users.create', 'description' => 'Crear usuarios', 'module' => 'Usuarios'],

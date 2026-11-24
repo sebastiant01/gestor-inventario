@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\RoleHelper;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -15,7 +16,7 @@ class AuthController extends Controller
     public function showLogin(): View|RedirectResponse
     {
         if (Auth::check()) {
-            return redirect()->intended(route('products.index'));
+            return redirect()->intended(route('home'));
         }
 
         return view('auth.login', [
@@ -58,8 +59,19 @@ class AuthController extends Controller
         // Cambiar el identificador de sesión evita reutilizar la sesión previa al login.
         $request->session()->regenerate();
 
-        return redirect()->intended(route('products.index'))
+        return redirect()->intended(route('home'))
             ->with('success', 'Has iniciado sesión correctamente.');
+    }
+
+    public function home(Request $request): RedirectResponse
+    {
+        $routeName = RoleHelper::firstAccessibleRouteName($request->user());
+
+        if ($routeName === null) {
+            abort(403, 'Tu cuenta no tiene permisos para consultar ningún módulo.');
+        }
+
+        return redirect()->route($routeName);
     }
 
     public function register(Request $request): RedirectResponse
@@ -95,7 +107,7 @@ class AuthController extends Controller
         Auth::login($user);
         $request->session()->regenerate();
 
-        return redirect()->route('products.index')
+        return redirect()->route('home')
             ->with('success', 'Cuenta administrativa inicial creada correctamente.');
     }
 
