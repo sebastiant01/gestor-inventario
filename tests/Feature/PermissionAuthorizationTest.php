@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Role;
+use App\Models\Permission;
 use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -104,7 +105,6 @@ class PermissionAuthorizationTest extends TestCase
         ] as $url) {
             $this->actingAs($user)->get($url)->assertOk();
         }
-
         foreach ([
             route('categories.create'),
             route('suppliers.create'),
@@ -125,6 +125,25 @@ class PermissionAuthorizationTest extends TestCase
 
         $this->actingAs($user)->delete(route('inventories.destroy', 999))
             ->assertForbidden();
+    }
+
+    public function test_login_redirects_user_to_a_module_their_role_can_view(): void
+    {
+        $role = Role::query()->create([
+            'role_name' => 'inventarista_test',
+            'role_description' => 'Acceso únicamente a inventarios.',
+        ]);
+        $inventoryPermissionId = Permission::query()
+            ->where('code', 'inventories.show')
+            ->value('permission_id');
+        $role->permissions()->attach($inventoryPermissionId);
+
+        $user = User::factory()->create(['role_id' => $role->role_id]);
+
+        $this->post(route('login.attempt'), [
+            'email' => $user->email,
+            'password' => 'password',
+        ])->assertRedirect(route('inventories.index'));
     }
 
     public function test_user_without_user_management_permissions_is_forbidden(): void
