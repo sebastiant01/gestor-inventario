@@ -14,11 +14,20 @@ use Illuminate\View\View;
 
 class RoleController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
-        $roles = Role::with('permissions')->get();
+        $query = Role::query()->with('permissions');
 
-        return view('roles.index', ['roles' => $roles]);
+        if ($search = trim((string) $request->query('search'))) {
+            $query->where(function ($builder) use ($search) {
+                $builder->where('role_name', 'like', "%{$search}%")
+                    ->orWhere('role_description', 'like', "%{$search}%");
+            });
+        }
+
+        $roles = $query->orderBy('role_name')->paginate(10)->withQueryString();
+
+        return view('roles.index', compact('roles'));
     }
 
     public function create(): View
@@ -43,15 +52,17 @@ class RoleController extends Controller
             'permissions.json' => 'The permissions field has an invalid format.',
         ])->validate();
 
+        $permissionIds = $this->validatedPermissionIds($request->input('permissions'));
+        $permissionIds = $this->includeModuleShowPermissions($permissionIds);
+
         try {
-            DB::transaction(function () use ($request) {
+            DB::transaction(function () use ($request, $permissionIds) {
                 $role = new Role();
                 $role->role_name = $request->role_name;
                 $role->role_description = $request->role_description;
                 $role->save();
 
-                $permissions = json_decode($request->permissions);
-                $role->permissions()->sync($permissions);
+                $role->permissions()->sync($permissionIds);
             });
 
             return redirect()->route('roles.index')->with('success', 'Role created successfully.');
@@ -64,11 +75,7 @@ class RoleController extends Controller
 
     public function edit(string $id): View | RedirectResponse
     {
-        $role = Role::find($id);
-
-        if (empty($role)) {
-            return redirect()->back()->withErrors(['error' => "Role with id '$id' doesn't exist."]);
-        }
+        $role = Role::with('permissions')->findOrFail($id);
 
         $modules = Permission::all()
             ->map(function ($permission) use ($role) {
@@ -102,15 +109,17 @@ class RoleController extends Controller
             'permissions.json' => 'The permissions field has an invalid format.',
         ])->validate();
 
+        $permissionIds = $this->validatedPermissionIds($request->input('permissions'));
+        $permissionIds = $this->includeModuleShowPermissions($permissionIds);
+
         try {
-            DB::transaction(function () use ($request) {
+            DB::transaction(function () use ($request, $permissionIds) {
                 $role = Role::find($request->role_id);
                 $role->role_name = $request->role_name;
                 $role->role_description = $request->role_description;
                 $role->save();
 
-                $permissions = json_decode($request->permissions);
-                $role->permissions()->sync($permissions);
+                $role->permissions()->sync($permissionIds);
             });
 
             return redirect()->route('roles.index')->with('success', 'Role updated successfully.');
@@ -141,5 +150,50 @@ class RoleController extends Controller
             Log::error($ex);
             return redirect()->back()->withErrors(['error' => 'An error has occurred.']);
         }
+    }
+
+    private function validatedPermissionIds(string $permissionsJson): array
+    {
+        $permissionIds = json_decode($permissionsJson, true);
+
+        Validator::make(
+            ['permissions' => $permissionIds],
+            [
+                'permissions' => ['required', 'array', 'min:1'],
+                'permissions.*' => ['required', 'integer', 'distinct', 'exists:permissions,permission_id'],
+            ],
+            [
+                'permissions.array' => 'The permissions field must be a list.',
+                'permissions.min' => 'At least one permission must be selected.',
+                'permissions.*.exists' => 'One or more selected permissions do not exist.',
+            ]
+        )->validate();
+
+        return array_map('intval', $permissionIds);
+    }
+
+    private function includeModuleShowPermissions(array $permissionIds): array
+    {
+        $selectedPermissions = Permission::query()
+            ->whereIn('permission_id', $permissionIds)
+            ->get(['permission_id', 'module', 'code']);
+
+        $modulesWithActions = $selectedPermissions
+            ->filter(fn (Permission $permission) => ! str_ends_with($permission->code, '.show'))
+            ->pluck('module')
+            ->unique();
+
+        if ($modulesWithActions->isEmpty()) {
+            return $permissionIds;
+        }
+
+        $showPermissionIds = Permission::query()
+            ->whereIn('module', $modulesWithActions)
+            ->where('code', 'like', '%.show')
+            ->pluck('permission_id')
+            ->map(fn ($permissionId) => (int) $permissionId)
+            ->all();
+
+        return array_values(array_unique(array_merge($permissionIds, $showPermissionIds)));
     }
 }

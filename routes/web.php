@@ -6,9 +6,8 @@ use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\RoleController;
 use Illuminate\Support\Facades\Route;
-
-Route::redirect('/', '/products');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
@@ -20,7 +19,22 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
+    Route::get('/', [AuthController::class, 'home'])->name('home');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+    //Roles
+    Route::get('/roles', [RoleController::class, 'index'])
+        ->middleware('permission:roles.show')->name('roles.index');
+    Route::get('/roles/create', [RoleController::class, 'create'])
+        ->middleware('permission:roles.create')->name('roles.create');
+    Route::get('/roles/edit/{id}', [RoleController::class, 'edit'])
+        ->middleware('permission:roles.update')->name('roles.edit');
+    Route::post('/roles/store', [RoleController::class, 'store'])
+        ->middleware('permission:roles.create')->name('roles.store');
+    Route::put('/roles/update', [RoleController::class, 'update'])
+        ->middleware('permission:roles.update')->name('roles.update');
+    Route::delete('/roles/{id}', [RoleController::class, 'delete'])
+        ->middleware('permission:roles.delete')->name('roles.delete');
 
     // Gestión de usuarios: cada operación exige su permiso correspondiente.
     Route::get('/users', [UserController::class, 'indexUsers'])

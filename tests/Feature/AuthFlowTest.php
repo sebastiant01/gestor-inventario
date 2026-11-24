@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
@@ -11,9 +12,15 @@ class AuthFlowTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed(DatabaseSeeder::class);
+    }
+
     public function test_users_panel_redirects_guests_to_login(): void
     {
-        foreach (['/users', '/products', '/categories', '/suppliers', '/inventories'] as $path) {
+        foreach (['/', '/users', '/products', '/categories', '/suppliers', '/inventories'] as $path) {
             $this->get($path)->assertRedirect(route('login'));
         }
     }

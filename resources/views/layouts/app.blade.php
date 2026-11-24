@@ -14,7 +14,7 @@
 <body>
 <header id="header" class="header fixed-top d-flex align-items-center">
     <div class="d-flex align-items-center justify-content-between">
-        <a href="{{ route('products.index') }}" class="logo d-flex align-items-center"><span class="d-none d-lg-block">Inventario<span class="brand-dot">.</span></span></a>
+        <a href="{{ route('home') }}" class="logo d-flex align-items-center"><span class="d-none d-lg-block">Inventario<span class="brand-dot">.</span></span></a>
         <i class="bi bi-list toggle-sidebar-btn" aria-label="Abrir menú"></i>
     </div>
     <div class="search-label ms-auto d-none d-lg-block"><i class="bi bi-shield-check me-2"></i>Gestión y control de inventario</div>
@@ -38,6 +38,9 @@
     @if(auth()->user()->hasPermission('inventories.show'))
         <li class="nav-item"><a class="nav-link {{ request()->routeIs('inventories.*') ? '' : 'collapsed' }}" href="{{ route('inventories.index') }}"><i class="bi bi-boxes"></i><span>Inventarios</span></a></li>
     @endif
+    @if(auth()->user()->hasPermission('roles.show'))
+        <li class="nav-item"><a class="nav-link {{ request()->routeIs('roles.*') ? '' : 'collapsed' }}" href="{{ route('roles.index') }}"><i class="bi bi-person-gear"></i><span>Roles</span></a></li>
+    @endif
     @if(auth()->user()->hasPermission('users.show'))
         <li class="nav-heading">ADMINISTRACIÓN</li>
         <li class="nav-item"><a class="nav-link {{ request()->routeIs('users.*') ? '' : 'collapsed' }}" href="{{ route('users.index') }}"><i class="bi bi-people"></i><span>Usuarios</span></a></li>
@@ -46,7 +49,7 @@
 </ul></aside>
 
 <main id="main" class="main">
-    <div class="pagetitle"><h1>@yield('page-title', 'Panel')</h1><nav><ol class="breadcrumb"><li class="breadcrumb-item"><a href="{{ route('products.index') }}">Inicio</a></li><li class="breadcrumb-item active">@yield('breadcrumb', 'Panel')</li></ol></nav></div>
+    <div class="pagetitle"><h1>@yield('page-title', 'Panel')</h1><nav><ol class="breadcrumb"><li class="breadcrumb-item"><a href="{{ route('home') }}">Inicio</a></li><li class="breadcrumb-item active">@yield('breadcrumb', 'Panel')</li></ol></nav></div>
     @if(session('success'))<div class="alert alert-success alert-dismissible fade show" role="alert"><i class="bi bi-check-circle me-2"></i>{{ session('success') }}<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button></div>@endif
     @if($errors->any())<div class="alert alert-danger" role="alert"><strong>Revisa los datos:</strong><ul class="mb-0 mt-1">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
     @if(session('message'))<div class="alert alert-warning" role="alert">{{ data_get(session('message'), 'content', session('message')) }}</div>@endif
