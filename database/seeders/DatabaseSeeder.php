@@ -9,16 +9,14 @@ class DatabaseSeeder extends Seeder
 {
     use WithoutModelEvents;
 
-    /**
-     * The app uses a one-time registration screen to bootstrap its first account.
-     * Keeping this seeder empty avoids creating a public, hard-coded admin password.
-     */
+    /** Seed roles and the permission catalogue without creating a hard-coded user. */
     public function run(): void
     {
         $this->call([
             RoleSeeder::class,
+            PermissionSeeder::class,
         ]);
-        
+
         $this->command?->info('No se creó una cuenta por defecto. Cuando la aplicación esté iniciada, visita /register para crear la primera cuenta.');
     }
 }

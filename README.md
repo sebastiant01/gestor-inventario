@@ -58,9 +58,13 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
 
 
-## Inicio de sesión y módulo de usuarios
+## Autenticación, roles, permisos y módulos del inventario
 
-Esta versión incluye una pantalla de inicio de sesión con sesiones nativas de Laravel. Las rutas del CRUD de usuarios están protegidas con el middleware `auth`; sin una sesión válida, Laravel redirige al login. El login usa el nombre de usuario (`user_name`) y valida la contraseña contra el hash guardado en `password_hash`.
+El sistema utiliza la autenticación de sesiones de Laravel. El inicio de sesión se realiza con correo electrónico y contraseña; el cierre de sesión invalida la sesión y regenera el token CSRF. El registro público solo está disponible para crear la primera cuenta administrativa.
+
+Las rutas internas están protegidas por `auth` y por el middleware `permission`, que valida en el backend el código de permiso asignado al rol del usuario. Ocultar enlaces en el menú solo mejora la navegación: la protección efectiva se realiza en cada ruta.
+
+Los módulos visuales disponibles son usuarios, productos, categorías, proveedores e inventarios. La gestión de inventarios permite agregar, retirar y ajustar las cantidades de productos, respetando existencias y capacidad.
 
 ### Preparar el entorno en Windows (PowerShell)
 
@@ -70,17 +74,19 @@ Esta versión incluye una pantalla de inicio de sesión con sesiones nativas de 
    Copy-Item .env.example .env
    ```
 
-2. Configura en `.env` la conexión a la base de datos que uses. Luego ejecuta:
+2. Configura en `.env` la conexión a la base de datos. Luego instala las dependencias, genera la clave de Laravel, ejecuta las migraciones y carga los roles y permisos iniciales:
 
    ```powershell
    composer install
    php artisan key:generate
-   php artisan migrate
+   php artisan migrate --seed
    php artisan serve
    ```
 
-3. Abre `http://127.0.0.1:8000/register` para crear la primera cuenta solo si la tabla `users` todavía está vacía. La cuenta se inicia automáticamente y se abre el panel. En adelante, el registro queda cerrado y debes entrar desde `http://127.0.0.1:8000/login`.
+   Para una base local desechable que necesites reconstruir desde cero, usa `php artisan migrate:fresh --seed`. Este comando elimina y vuelve a crear todas las tablas: no lo ejecutes sobre una base con datos que debas conservar.
 
-4. Desde el panel puedes consultar, buscar, crear, editar y eliminar usuarios; el botón **Cerrar sesión** invalida la sesión actual.
+3. Abre `http://127.0.0.1:8000/register` para crear la primera cuenta administrativa solo si la tabla `users` está vacía. Después inicia sesión desde `http://127.0.0.1:8000/login` con el correo y la contraseña registrados.
 
-No se incluye una cuenta con contraseña predeterminada. El seeder está intencionalmente sin usuario predefinido para evitar exponer credenciales conocidas.
+4. Desde el menú lateral puedes ingresar a los módulos permitidos. El rol `admin` recibe todos los permisos definidos; el rol `user` recibe permisos de consulta sobre categorías, proveedores, productos e inventarios. La asignación de roles a usuarios requiere el permiso `users.assign-role`.
+
+No se incluye una cuenta con contraseña predeterminada. El seeder no crea usuarios; únicamente prepara el catálogo de roles y permisos.
